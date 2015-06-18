@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Appshed visualizer</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
-    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="//twitter.github.com/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
+
 </head>
 <body>
     <div class="container theme-showcase">
@@ -21,20 +22,19 @@
                     <h3 class="panel-title">Put API URL and set update interval</h3>
                 </div>
                 <div class="panel-body">
-
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control api-url-input" placeholder="API URL" value="http://appshed-ext-storage.igor.ekreative.com/app_dev.php/api/04e9b308-0dd9-11e5-8b53-5254005af43f" />
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="input-group">
-                            <input type="text" class="form-control interval-input" placeholder="Interval" title="Run interval" value="30" />
-
-                            <div class="input-group-btn">
-                                <button type="button" class="btn btn-default start-btn">Start</button>
-                                <button type="button" class="btn btn-default run-btn">Run!</button>
-                            </div>
+                    <form onsubmit="return toggleRun();">
+                        <div class="form-group">
+                            <label for="inputApiUrl">API URL</label>
+                            <input type="text" class="form-control" id="inputApiUrl" placeholder="API URL">
                         </div>
-                    </div>
+                        <div class="form-group">
+                            <label for="inputInterval">Run interval</label>
+                            <input type="number" class="form-control" id="inputInterval" placeholder="Run interval" value="30">
+                        </div>
+
+                        <button type="submit" class="btn btn-default start-btn" >Start!</button>
+                        <button type="button" class="btn btn-default run-btn">Run!</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -47,22 +47,34 @@
         var execution = false;
         var timerId = 0;
 
+
+
+
         function run() {
-            var apiUrlInput = jQuery('.api-url-input');
+            var apiUrlInput = jQuery('#inputApiUrl');
             var url = apiUrlInput.val();
             if (url) {
                 jQuery.post(url, {}, function(data) {
                     if (data.length) {
                         var thead = Object.keys(data[0]);
                         var result = '<table class="table table-striped"><thead><tr>';
+                        var template = Hogan.compile('<th>{{key}}</th>');
                         for (key in thead) {
-                            result = result + '<th>' + thead[key] + '</th>';
+                            var variables = {
+                                key: thead[key]
+                            };
+                            result = result + template.render(variables);
                         }
                         result = result + '</tr></thead><tbody>';
+                        template = Hogan.compile('<td {{class}}>{{value}}</td>');
                         for (i in data) {
                             result = result + '<tr>';
                             for (key in thead) {
-                                result = result + '<td '+ ((data[i][thead[key]] == null) ? ('class="text-muted"') : ('')) +'>' + data[i][thead[key]] + '</td>';
+                                var variables = {
+                                    value: ((data[i][thead[key]] == null) ? ('null') : (data[i][thead[key]])),
+                                    class: ((data[i][thead[key]] == null) ? ('class=text-muted') : (''))
+                                };
+                                result = result + template.render(variables);
                             }
                             result = result + '</tr>';
                         }
@@ -79,29 +91,29 @@
             }
         }
 
-        function toggleRun(btn) {
+        function toggleRun() {
+            var btn = jQuery('.start-btn');
             if (execution) {
-                jQuery(btn).html('Start!');
-                clearInterval(timerId);
+                btn.html('Start!');
+                clearTimeout(timerId);
                 execution = false;
             } else {
-                jQuery(btn).html('Stop!');
+                btn.html('Stop!');
                 run();
-                var interval = parseInt(jQuery('.interval-input').val());
-                timerId = setInterval(function() {
+                var interval = parseInt(jQuery('#inputInterval').val());
+                function timerFunc() {
                     run();
-                }, interval * 1000);
+                    timerId = setTimeout(timerFunc, interval * 1000)
+                }
+                timerId = setTimeout(timerFunc, interval * 1000);
                 execution = true;
             }
+            return false;
         }
 
         jQuery(document).ready(function() {
-            jQuery('.run-btn').unbind('click').click(function() {
+            jQuery('.run-btn').on('click', function() {
                 run();
-            });
-
-            jQuery('.start-btn').unbind('click').click(function() {
-                toggleRun(this);
             });
         });
     </script>
