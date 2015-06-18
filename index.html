@@ -23,7 +23,7 @@
                 <form id="settings">
                     <div class="form-group">
                         <label for="inputApiUrl">API URL</label>
-                        <input type="text" class="form-control" id="inputApiUrl" placeholder="API URL" required>
+                        <input type="url" class="form-control" id="inputApiUrl" placeholder="API URL" required>
                     </div>
                     <div class="form-group">
                         <label for="inputInterval">Run interval (seconds)</label>
@@ -79,12 +79,12 @@
                 apiUrlInput = $('#inputApiUrl'),
                 apiIntervalInput = $('#inputInterval'),
                 tableWrapper = $('#table-wrapper'),
-                startBtn = $('#start-btn');
+                startBtn = $('#start-btn'),
+                settings = $('#settings');
 
         function run() {
-            var url = apiUrlInput.val();
-            if (url) {
-                $.ajax(url, {dataType: 'json'}).then(function (data) {
+            if (settings[0].checkValidity()) {
+                $.ajax(apiUrlInput.val(), {dataType: 'json'}).then(function (data) {
                     if (Array.isArray(data)) {
                         var titles = [].concat.apply([], data.map(Object.keys)).reduce(function (m, title) {
                             if (m.indexOf(title) === -1) {
@@ -116,15 +116,22 @@
                     tableWrapper.html('<h3>Error</h3>');
                 });
             }
+            else {
+                settings.find(':submit').click();
+            }
         }
 
         function toggleRun() {
             if (running) {
                 startBtn.text('Start');
+                startBtn.removeClass('btn-danger');
+                startBtn.addClass('btn-primary');
                 clearTimeout(timeout);
                 running = false;
             } else {
                 startBtn.text('Stop');
+                startBtn.removeClass('btn-primary');
+                startBtn.addClass('btn-danger');
                 interval = parseInt(apiIntervalInput.val());
                 running = true;
                 run();
@@ -134,7 +141,7 @@
 
         $(function () {
             $('#run-btn').on('click', run);
-            $('#settings').on('submit', toggleRun);
+            settings.on('submit', toggleRun);
         });
     })(jQuery, Hogan);
 </script>
