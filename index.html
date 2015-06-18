@@ -4,118 +4,139 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Appshed visualizer</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
-    <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-    <script src="//twitter.github.com/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
-
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
 </head>
 <body>
-    <div class="container theme-showcase">
-        <div class="page-header">
-            <h1>Visualizer</h1>
-        </div>
-        <div class="row">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Put API URL and set update interval</h3>
-                </div>
-                <div class="panel-body">
-                    <form onsubmit="return toggleRun();">
-                        <div class="form-group">
-                            <label for="inputApiUrl">API URL</label>
-                            <input type="text" class="form-control" id="inputApiUrl" placeholder="API URL">
-                        </div>
-                        <div class="form-group">
-                            <label for="inputInterval">Run interval</label>
-                            <input type="number" class="form-control" id="inputInterval" placeholder="Run interval" value="30">
-                        </div>
+<div class="container theme-showcase">
+    <div class="page-header">
+        <h1>Visualizer</h1>
+    </div>
+    <div class="row">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Settings</h3>
+            </div>
+            <div class="panel-body">
+                <p>Put API URL and set update interval</p>
 
-                        <button type="submit" class="btn btn-default start-btn" >Start!</button>
-                        <button type="button" class="btn btn-default run-btn">Run!</button>
-                    </form>
-                </div>
+                <form id="settings">
+                    <div class="form-group">
+                        <label for="inputApiUrl">API URL</label>
+                        <input type="text" class="form-control" id="inputApiUrl" placeholder="API URL" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputInterval">Run interval (seconds)</label>
+                        <input type="number" class="form-control" id="inputInterval" placeholder="Run interval"
+                               value="30" required min="0">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="start-btn">Start</button>
+                    <button type="button" class="btn btn-default" id="run-btn">Get Now</button>
+                </form>
             </div>
         </div>
-
-        <div class="row table-wrapper"></div>
     </div>
 
-    <script>
+    <div class="row" id="table-wrapper"></div>
+</div>
 
-        var execution = false;
-        var timerId = 0;
-
-
-
+<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="//twitter.github.com/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
+<script type="text/mustache" id="tableTmpl">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Results</h3>
+        </div>
+        <div class="panel-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        {{#titles}}
+                            <th>{{title}}</th>
+                        {{/titles}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#rows}}
+                    <tr>
+                        {{#cols}}
+                            <td>{{data}}</td>
+                        {{/cols}}
+                    </tr>
+                    {{/rows}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</script>
+<script>
+    (function ($, Hogan) {
+        var tableTmpl = Hogan.compile($('#tableTmpl').html()),
+                timeout,
+                running = false,
+                interval = 30,
+                apiUrlInput = $('#inputApiUrl'),
+                apiIntervalInput = $('#inputInterval'),
+                tableWrapper = $('#table-wrapper'),
+                startBtn = $('#start-btn');
 
         function run() {
-            var apiUrlInput = jQuery('#inputApiUrl');
             var url = apiUrlInput.val();
             if (url) {
-                jQuery.post(url, {}, function(data) {
-                    if (data.length) {
-                        var thead = Object.keys(data[0]);
-                        var result = '<table class="table table-striped"><thead><tr>';
-                        var template = Hogan.compile('<th>{{key}}</th>');
-                        for (key in thead) {
-                            var variables = {
-                                key: thead[key]
-                            };
-                            result = result + template.render(variables);
-                        }
-                        result = result + '</tr></thead><tbody>';
-                        template = Hogan.compile('<td {{class}}>{{value}}</td>');
-                        for (i in data) {
-                            result = result + '<tr>';
-                            for (key in thead) {
-                                var variables = {
-                                    value: ((data[i][thead[key]] == null) ? ('null') : (data[i][thead[key]])),
-                                    class: ((data[i][thead[key]] == null) ? ('class=text-muted') : (''))
-                                };
-                                result = result + template.render(variables);
+                $.ajax(url, {dataType: 'json'}).then(function (data) {
+                    if (Array.isArray(data)) {
+                        var titles = [].concat.apply([], data.map(Object.keys)).reduce(function (m, title) {
+                            if (m.indexOf(title) === -1) {
+                                m.push(title);
                             }
-                            result = result + '</tr>';
-                        }
-                        result = result + '</tbody></table>';
-                    } else {
-                        //empty result
-                        result = '<h3>Empty result</h3>';
-                    }
-                    jQuery('.table-wrapper').html(result);
+                            return m;
+                        }, []);
 
-                }, 'json');
-            } else {
-                apiUrlInput.focus();
+                        tableWrapper.html(tableTmpl.render({
+                            titles: titles.map(function (title) {
+                                return {title: title};
+                            }),
+                            rows: data.map(function (row) {
+                                return {
+                                    cols: titles.map(function (title) {
+                                        return {data: row[title] || ''};
+                                    })
+                                };
+                            })
+                        }));
+                    } else {
+                        tableWrapper.html('<h3>Empty result</h3>');
+                    }
+                    if (running) {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(run, interval * 1000)
+                    }
+                }, function () {
+                    tableWrapper.html('<h3>Error</h3>');
+                });
             }
         }
 
         function toggleRun() {
-            var btn = jQuery('.start-btn');
-            if (execution) {
-                btn.html('Start!');
-                clearTimeout(timerId);
-                execution = false;
+            if (running) {
+                startBtn.text('Start');
+                clearTimeout(timeout);
+                running = false;
             } else {
-                btn.html('Stop!');
+                startBtn.text('Stop');
+                interval = parseInt(apiIntervalInput.val());
+                running = true;
                 run();
-                var interval = parseInt(jQuery('#inputInterval').val());
-                function timerFunc() {
-                    run();
-                    timerId = setTimeout(timerFunc, interval * 1000)
-                }
-                timerId = setTimeout(timerFunc, interval * 1000);
-                execution = true;
             }
             return false;
         }
 
-        jQuery(document).ready(function() {
-            jQuery('.run-btn').on('click', function() {
-                run();
-            });
+        $(function () {
+            $('#run-btn').on('click', run);
+            $('#settings').on('submit', toggleRun);
         });
-    </script>
+    })(jQuery, Hogan);
+</script>
 </body>
 </html>
