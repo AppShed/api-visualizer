@@ -85,29 +85,31 @@
         function run() {
             if (settings[0].checkValidity()) {
                 $.ajax(apiUrlInput.val(), {dataType: 'json'}).then(function (data) {
-                    if (Array.isArray(data)) {
-                        var titles = [].concat.apply([], data.map(Object.keys)).reduce(function (m, title) {
-                            if (m.indexOf(title) === -1) {
-                                m.push(title);
-                            }
-                            return m;
-                        }, []);
-
-                        tableWrapper.html(tableTmpl.render({
-                            titles: titles.map(function (title) {
-                                return {title: title};
-                            }),
-                            rows: data.map(function (row) {
-                                return {
-                                    cols: titles.map(function (title) {
-                                        return {data: row[title] || ''};
-                                    })
-                                };
-                            })
-                        }));
-                    } else {
-                        tableWrapper.html('<h3>Empty result</h3>');
+                    if (!Array.isArray(data)) {
+                        if (typeof data !== 'object') {
+                            data = {data: data};
+                        }
+                        data = [data];
                     }
+                    var titles = [].concat.apply([], data.map(Object.keys)).reduce(function (m, title) {
+                        if (m.indexOf(title) === -1) {
+                            m.push(title);
+                        }
+                        return m;
+                    }, []);
+
+                    tableWrapper.html(tableTmpl.render({
+                        titles: titles.map(function (title) {
+                            return {title: title};
+                        }),
+                        rows: data.map(function (row) {
+                            return {
+                                cols: titles.map(function (title) {
+                                    return {data: JSON.stringify(row[title]) || ''};
+                                })
+                            };
+                        })
+                    }));
                     if (running) {
                         clearTimeout(timeout);
                         timeout = setTimeout(run, interval * 1000)
