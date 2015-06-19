@@ -86,11 +86,14 @@
             if (settings[0].checkValidity()) {
                 $.ajax(apiUrlInput.val(), {dataType: 'json'}).then(function (data) {
                     if (!Array.isArray(data)) {
-                        if (typeof data !== 'object') {
-                            data = {data: data};
-                        }
                         data = [data];
                     }
+                    data = data.map(function(data) {
+                        if (typeof data !== 'object') {
+                            return {data: data};
+                        }
+                        return data;
+                    });
                     var titles = [].concat.apply([], data.map(Object.keys)).reduce(function (m, title) {
                         if (m.indexOf(title) === -1) {
                             m.push(title);
