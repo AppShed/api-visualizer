@@ -13,35 +13,90 @@
         <h1>Visualizer</h1>
     </div>
     <div class="row">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title">Settings</h3>
-            </div>
-            <div class="panel-body">
-                <p>Put API URL and set update interval</p>
+        <div class="panel-group" id="accordion">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">Settings
+                            <span class="glyphicon glyphicon-sort" style="float: right" ></span>
 
-                <form id="settings">
-                    <div class="form-group">
-                        <label for="inputApiUrl">API URL</label>
-                        <input type="url" class="form-control" id="inputApiUrl" placeholder="API URL" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="inputInterval">Run interval (seconds)</label>
-                        <input type="number" class="form-control" id="inputInterval" placeholder="Run interval"
-                               value="30" required min="0">
-                    </div>
+                        </a>
+                    </h3>
+                </div>
+                <div class="panel-body panel-collapse collapse in" id="collapseOne">
+                    <p>Put API URL and set update interval</p>
 
-                    <button type="submit" class="btn btn-primary" id="start-btn">Start</button>
-                    <button type="button" class="btn btn-default" id="run-btn">Get Now</button>
-                </form>
+                    <form id="settings">
+                        <div class="form-group">
+                            <label for="inputApiUrl">API URL</label>
+                            <input type="url" class="form-control" id="inputApiUrl" placeholder="API URL" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputInterval">Run interval (seconds)</label>
+                            <input type="number" class="form-control" id="inputInterval" placeholder="Run interval"
+                                   value="30" required min="0">
+                        </div>
+
+                        <div>
+                            <label>Display mode</label>
+                            <ul id="myTabs" class="nav nav-tabs" role="tablist">
+                                <li role="presentation" class="active"><a href=".displayTable" id="display-table-tab" role="tab" data-toggle="tab" aria-controls="display-table" aria-expanded="true">Table</a></li>
+                                <li role="presentation" class=""><a href=".displayImage" role="tab" id="display-image-tab" data-toggle="tab" aria-controls="display-image" aria-expanded="false">Image</a></li>
+                                <li role="presentation" class=""><a href=".displayText" role="tab" id="display-text-tab" data-toggle="tab" aria-controls="display-text" aria-expanded="false">Text</a></li>
+                            </ul>
+                            <div id="myTabContent" class="tab-content">
+                                <div role="tabpanel" class="displayTable tab-pane fade active in" aria-labelledby="display-table-tab">
+                                    <p>No additional options</p>
+                                </div>
+                                <div role="tabpanel" class="displayImage tab-pane fade " aria-labelledby="display-imag-tab">
+                                    <label for="inputImageField">Select Image URL field</label>
+                                    <select id="inputImageField" class="form-control">
+                                        <optgroup label="Execute query to get field list"></optgroup>
+                                    </select>
+                                </div>
+                                <div role="tabpanel" class="displayText tab-pane fade" aria-labelledby="display-text-tab">
+                                    <label for="inputTextField">Select text field</label>
+                                    <select id="inputTextField" class="form-control">
+                                        <optgroup label="Execute query to get field list"></optgroup>
+                                    </select>
+                                    <label for="inputTextCss">Custom text style</label>
+                                    <input type="text" class="form-control" id="inputTextCss" placeholder="Put CSS properties here">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="start-btn">Start</button>
+                        <button type="button" class="btn btn-default" id="run-btn">Get Now</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="row" id="table-wrapper"></div>
+    <div class="tab-content">
+        <div role="tabpanel" class="displayTable tab-pane fade active in" aria-labelledby="display-table-tab">
+            <div class="row" id="table-wrapper"></div>
+        </div>
+        <div role="tabpanel" class="displayImage tab-pane fade" aria-labelledby="display-image-tab">
+            <div class="row" id="image-wrapper"></div>
+        </div>
+        <div role="tabpanel" class="displayText tab-pane fade" aria-labelledby="display-text-tab">
+            <div class="row" id="text-wrapper"></div>
+        </div>
+    </div>
 </div>
 
+<style>
+    #image-wrapper img {
+        max-width: 100%;
+    }
+
+    #myTabContent {
+        margin-bottom: 15px;
+    }
+</style>
 <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="//twitter.github.com/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
 <script type="text/mustache" id="tableTmpl">
     <div class="panel panel-default">
@@ -73,12 +128,20 @@
 <script>
     (function ($, Hogan) {
         var tableTmpl = Hogan.compile($('#tableTmpl').html()),
+                imageTmpl = Hogan.compile('<img src="{{url}}" />'),
+                textTmpl = Hogan.compile('<span style="{{style}}">{{text}}</span>'),
+                selectFieldTmpl = Hogan.compile('{{#options}}<option value="{{option}}" {{selected}}>{{option}}</option>{{/options}}'),
                 timeout,
                 running = false,
                 interval = 30,
                 apiUrlInput = $('#inputApiUrl'),
                 apiIntervalInput = $('#inputInterval'),
                 tableWrapper = $('#table-wrapper'),
+                imageWrapper = $('#image-wrapper'),
+                textWrapper = $('#text-wrapper'),
+                inputImageField = $('#inputImageField'),
+                inputTextField = $('#inputTextField'),
+                inputTextCss = $('#inputTextCss'),
                 startBtn = $('#start-btn'),
                 settings = $('#settings');
 
@@ -101,6 +164,34 @@
                         return m;
                     }, []);
 
+//                    var items = '';
+//                    titles.forEach(function() {
+//                        items = items +
+//                    });
+
+                    var inputImageFieldSelected = inputImageField.val();
+                    inputImageField.html(selectFieldTmpl.render({
+                        'options': titles.map(function (title) {
+                            return {
+                                'option': title,
+                                'selected': ((title==inputImageFieldSelected) ? ('selected="selected"'): (''))
+                            };
+                        })
+                    }));
+                    inputImageFieldSelected = inputImageField.val();
+
+                    var inputTextFieldSelected = inputTextField.val();
+                    inputTextField.html(selectFieldTmpl.render({
+                        'options': titles.map(function (title) {
+                            return {
+                                'option': title,
+                                'selected': ((title==inputTextFieldSelected) ? ('selected="selected"'): (''))
+                            };
+                        })
+                    }));
+                    inputTextFieldSelected = inputTextField.val();
+
+
                     tableWrapper.html(tableTmpl.render({
                         titles: titles.map(function (title) {
                             return {title: title};
@@ -113,6 +204,16 @@
                             };
                         })
                     }));
+
+                    imageWrapper.html(imageTmpl.render({
+                        'url': data[0][inputImageFieldSelected] || 'https://placeholdit.imgix.net/~text?txtsize=33&txt=no+image&w=350&h=150'
+                    }));
+
+                    textWrapper.html(textTmpl.render({
+                        'text': data[0][inputTextFieldSelected],
+                        'style': inputTextCss.val()
+                    }));
+
                     if (running) {
                         clearTimeout(timeout);
                         timeout = setTimeout(run, interval * 1000)
