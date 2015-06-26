@@ -9,15 +9,12 @@
 </head>
 <body>
 <div class="container theme-showcase">
-    <div class="page-header">
-        <h1>Visualizer</h1>
-    </div>
-    <div class="row">
+    <div class="row top-buffer">
         <div class="panel-group" id="accordion">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">
-                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">Settings
+                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">Visualizer settings
                             <span class="glyphicon glyphicon-sort" style="float: right" ></span>
 
                         </a>
@@ -94,6 +91,10 @@
     #myTabContent {
         margin-bottom: 15px;
     }
+
+    .top-buffer {
+        margin-top:15px;
+    }
 </style>
 <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
@@ -145,6 +146,11 @@
                 startBtn = $('#start-btn'),
                 settings = $('#settings');
 
+        if (document.location.hash.split('#').length > 1) {
+            apiUrlInput.val(document.location.hash.split('#')[1]);
+            run();
+        }
+
         function run() {
             if (settings[0].checkValidity()) {
                 $.ajax(apiUrlInput.val(), {dataType: 'json'}).then(function (data) {
@@ -163,11 +169,6 @@
                         }
                         return m;
                     }, []);
-
-//                    var items = '';
-//                    titles.forEach(function() {
-//                        items = items +
-//                    });
 
                     var inputImageFieldSelected = inputImageField.val();
                     inputImageField.html(selectFieldTmpl.render({
