@@ -144,7 +144,8 @@
                 inputTextField = $('#inputTextField'),
                 inputTextCss = $('#inputTextCss'),
                 startBtn = $('#start-btn'),
-                settings = $('#settings');
+                settings = $('#settings'),
+                lastImg = '';
 
         if (document.location.hash.split('#').length > 1) {
             apiUrlInput.val(document.location.hash.split('#')[1]);
@@ -192,7 +193,6 @@
                     }));
                     inputTextFieldSelected = inputTextField.val();
 
-
                     tableWrapper.html(tableTmpl.render({
                         titles: titles.map(function (title) {
                             return {title: title};
@@ -206,9 +206,13 @@
                         })
                     }));
 
-                    imageWrapper.html(imageTmpl.render({
-                        'url': data[0][inputImageFieldSelected] || 'https://placeholdit.imgix.net/~text?txtsize=33&txt=no+image&w=350&h=150'
-                    }));
+                    var currentImg = data[0][inputImageFieldSelected] || 'https://placeholdit.imgix.net/~text?txtsize=33&txt=no+image&w=350&h=150';
+                    if (lastImg != currentImg) {
+                        imageWrapper.html(imageTmpl.render({
+                            'url': currentImg
+                        }));
+                        lastImg = currentImg;
+                    }
 
                     textWrapper.html(textTmpl.render({
                         'text': data[0][inputTextFieldSelected],
@@ -220,6 +224,10 @@
                         timeout = setTimeout(run, interval * 1000)
                     }
                 }, function () {
+                    if (running) {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(run, interval * 1000)
+                    }
                     tableWrapper.html('<h3>Error</h3>');
                 });
             }
